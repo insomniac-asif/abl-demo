@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abl-demo"
+version = "0.1.0"
+description = "Clean-room showcase of the ABL multi-agent architecture: peer bus, propose→challenge→execute, 3/3 consensus, three personalities."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "insomniac-asif" }]
+keywords = ["multi-agent", "consensus", "agents", "peer-bus", "llm"]
+dependencies = []  # core demo runs on the stdlib alone
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.30.0"]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+abl-demo = "abl_demo.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
