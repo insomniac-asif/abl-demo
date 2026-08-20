@@ -7,7 +7,7 @@
 [![python](https://img.shields.io/badge/python-3.10%2B-DC143C)](pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-DC143C)](LICENSE)
 [![dependencies](https://img.shields.io/badge/runtime_dependencies-none_(stdlib)-DC143C)](pyproject.toml)
-[![tests](https://img.shields.io/badge/tests-8-DC143C)](tests/)
+[![tests](https://img.shields.io/badge/tests-20-DC143C)](tests/)
 
 </div>
 
@@ -121,24 +121,29 @@ The agents' reasoning text comes from a pluggable provider. `providers.py`
 ships three: the deterministic `MockProvider` (default), an Anthropic wrapper
 (needs `ANTHROPIC_API_KEY` and `pip install anthropic`), and an Ollama wrapper
 (needs a local Ollama daemon; model from `OLLAMA_MODEL`, default `llama3`). The
-protocol is identical whichever provider speaks — only the generated text
-changes.
+protocol is identical whichever provider speaks.
 
-One honest caveat: `python demo.py` always uses the scripted mock — the
-walkthrough's dialogue depends on its fixed script, so it pins `MockProvider`
-regardless of environment. To let a real model speak, build the collective
-yourself: `Collective()` with no explicit provider selects one from
-`ABL_DEMO_PROVIDER` (`mock` | `anthropic` | `ollama`, default `mock`). After
-`pip install -e .`:
+Selection is by the `ABL_DEMO_PROVIDER` environment variable
+(`mock` | `anthropic` | `ollama`, default `mock`):
+
+```bash
+ABL_DEMO_PROVIDER=ollama python demo.py
+```
+
+The run prints which provider it selected, so you can confirm the variable took
+effect. `Collective()` with no explicit provider selects the same way, if you'd
+rather drive a round yourself after `pip install -e .`:
 
 ```python
-# with e.g. ABL_DEMO_PROVIDER=anthropic set in the environment
 from abl_demo.orchestrator import Collective
 
 decision = Collective().run_round("Cache the public price endpoint for 24h")
 ```
 
-See `.env.example` for the provider keys.
+One honest caveat: only the mock run is deterministic. The two rounds described
+above are scripted, and a real model writes its own critiques — so it may vote
+differently and reach a different verdict. That is the point: the protocol
+holds either way. See `.env.example` for the provider keys.
 
 ## Layout
 
@@ -155,13 +160,16 @@ src/abl_demo/
   orchestrator.py  # Collective — wires bus + agents + consensus into one round
   cli.py           # the walkthrough
 demo.py            # (repo root) thin entry point → abl_demo.cli:main
-tests/             # (repo root) 8 tests: consensus rules, bus delivery, end-to-end rounds
+tests/             # (repo root) 20 tests: consensus rules, bus delivery, rounds, provider routing
 ```
 
 The tests pin the guarantees, not just the happy path: unanimous approval
 executes, a single reject deadlocks, abstain is not consent, the proposer
 implicitly approves, the bus never echoes a message back to its sender, and a
-scripted veto withholds an end-to-end round. Run them with:
+scripted veto withholds an end-to-end round. A separate group pins that
+`ABL_DEMO_PROVIDER` actually reaches the provider `demo.py` runs on — the
+selector being correct is not the same as the entry point using it. Run them
+with:
 
 ```bash
 pip install -e ".[dev]"
@@ -175,10 +183,10 @@ reproduction** of ABL's public design — the peer bus, the
 propose/challenge/execute protocol, and 3/3-or-escalate consensus — and it
 ships no private data, trained models, or credentials. The default deliberation
 is a scripted, deterministic walkthrough rather than an open-ended agent
-runtime; the real-model providers (Anthropic, Ollama) change only the reasoning
-text, not the protocol. The bus is synchronous and in-process, Lis's "memory"
-is an in-memory list, and there is no CI on this repo — the 8-test suite runs
-locally. MIT licensed.
+runtime; the real-model providers (Anthropic, Ollama) change the reasoning text
+— and therefore possibly the votes — but never the protocol. The bus is
+synchronous and in-process, Lis's "memory" is an in-memory list, and there is
+no CI on this repo — the 20-test suite runs locally. MIT licensed.
 
 ---
 
