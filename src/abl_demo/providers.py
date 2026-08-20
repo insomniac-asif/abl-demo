@@ -47,9 +47,21 @@ class AnthropicProvider:
     """Thin wrapper over the Anthropic SDK (optional)."""
 
     def __init__(self, model: str = "claude-sonnet-4-6") -> None:
-        import anthropic  # imported lazily so the dep is optional
+        try:
+            import anthropic  # imported lazily so the dep is optional
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise RuntimeError(
+                "ABL_DEMO_PROVIDER=anthropic needs the SDK: pip install anthropic"
+            ) from exc
 
-        self._client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        try:
+            api_key = os.environ["ANTHROPIC_API_KEY"]
+        except KeyError as exc:  # pragma: no cover - depends on environment
+            raise RuntimeError(
+                "ABL_DEMO_PROVIDER=anthropic needs ANTHROPIC_API_KEY to be set"
+            ) from exc
+
+        self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
 
     def complete(self, system: str, prompt: str) -> str:
@@ -85,8 +97,14 @@ class OllamaProvider:
             data=body,
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            return json.loads(resp.read()).get("response", "")
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return json.loads(resp.read()).get("response", "")
+        except OSError as exc:  # pragma: no cover - depends on environment
+            raise RuntimeError(
+                "ABL_DEMO_PROVIDER=ollama could not reach the Ollama daemon at "
+                f"http://localhost:11434 (model {self._model!r}). Is it running?"
+            ) from exc
 
 
 def provider_from_env(mock_script: dict[str, str] | None = None) -> Provider:

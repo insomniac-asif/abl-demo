@@ -75,6 +75,11 @@ ABL_DEMO_PROVIDER=ollama    python demo.py   # needs a local Ollama daemon; set 
 
 Provider selection is via the `ABL_DEMO_PROVIDER` environment variable
 (`mock` | `anthropic` | `ollama`); see `.env.example` for the full set of keys.
+The run prints which provider it selected, so you can confirm the variable took
+effect. Note that only the **mock** run is deterministic — a real model writes
+its own critiques, so it may well vote differently and reach a different verdict
+than the scripted rounds described above. That is the point: the protocol holds
+either way.
 
 ## How it works
 
@@ -127,7 +132,8 @@ execute protocol, and 3/3-or-escalate consensus — in a few hundred lines of
 original code; it ships no private data, trained models, or credentials. The
 default deliberation is a scripted, deterministic walkthrough rather than an
 open-ended agent runtime, and the real-model providers (Anthropic, Ollama)
-change only the reasoning text, not the protocol. MIT licensed.
+change the reasoning text — and therefore possibly the votes — but never the
+protocol. MIT licensed.
 
 Run the tests with:
 

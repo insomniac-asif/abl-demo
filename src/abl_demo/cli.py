@@ -2,12 +2,14 @@
 
     python demo.py
 
-Runs two rounds offline (deterministic mock provider):
+Runs two rounds, offline by default (deterministic mock provider):
   1. a proposal the three peers unanimously approve  -> executes
   2. a proposal they deadlock on                     -> escalates to the human
 
 Set ABL_DEMO_PROVIDER=anthropic|ollama to let real models speak instead (see
-src/abl_demo/providers.py). The protocol is identical either way.
+src/abl_demo/providers.py). The protocol is identical either way, but a real
+model writes its own critiques, so it may vote differently and reach a
+different verdict than the scripted rounds above.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ import sys
 from .agents import Aurora, Borea, Lis  # noqa: F401  (documents the cast)
 from .orchestrator import Collective
 from .protocol import AgentID, Decision, Proposal, Vote
-from .providers import MockProvider
+from .providers import provider_from_env
 
 # A deterministic script so the offline demo reads like a real deliberation.
 SCRIPT = {
@@ -57,10 +59,10 @@ SCRIPT = {
 
 def human_tiebreaker(proposal: Proposal, votes: dict[AgentID, Vote]) -> bool:
     """In a real deployment this pauses and asks the operator. For the demo we
-    answer deterministically: the human sides with Lis and declines."""
+    answer deterministically: the human sides with the dissenter and declines."""
     print("\n  ⚖  escalated to human tiebreaker (operator) …")
     print(f"     votes: {{{', '.join(f'{a.value}={v.value}' for a, v in votes.items())}}}")
-    print("     operator decision: REJECT (sides with Lis on retention)")
+    print("     operator decision: REJECT (sides with the dissenting peer)")
     return False
 
 
@@ -81,12 +83,13 @@ def main() -> None:
             pass
 
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
-    collective = Collective(
-        provider=MockProvider(SCRIPT), tiebreaker=human_tiebreaker
-    )
+    # SCRIPT is only consumed by the mock; the real providers ignore it.
+    provider = provider_from_env(SCRIPT)
+    collective = Collective(provider=provider, tiebreaker=human_tiebreaker)
 
     print("=" * 70)
     print("ABL demo — peer bus · propose→challenge→execute · 3/3 consensus")
+    print(f"provider: {type(provider).__name__}")
     print("=" * 70)
 
     print("\nROUND 1 — Aurora proposes a 24h cache on the price endpoint")
